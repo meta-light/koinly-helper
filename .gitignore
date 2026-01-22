@@ -1,0 +1,18 @@
+# Dependencies
+/node_modules
+
+# Build output
+/dist
+
+# Cache directory
+/.cache
+
+# User files
+/transactions.csv
+/transactions-updated.csv
+
+# Environment variables
+/.env
+
+# Keep .env.example for reference
+!/.env.example
