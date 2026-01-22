@@ -10,9 +10,7 @@ dotenv.config();
 
 let coingeckoList: any[] = [];
 export const COINGECKO_LIST_PATH = path.join(process.cwd(), '.cache/coingecko_list.json');
-if (fs.existsSync(COINGECKO_LIST_PATH)) {
-  coingeckoList = JSON.parse(fs.readFileSync(COINGECKO_LIST_PATH, 'utf-8'));
-}
+if (fs.existsSync(COINGECKO_LIST_PATH)) {coingeckoList = JSON.parse(fs.readFileSync(COINGECKO_LIST_PATH, 'utf-8'));}
 
 export async function listMissingIds() {
   const inputFile = path.join(process.cwd(), 'transactions.csv');
@@ -55,8 +53,6 @@ export async function listMissingIds() {
 
 export async function fetchHistoricalPrice(tokenId: string, symbol: string, timestamp: number, chain: string = 'solana', retries = 2): Promise<number | null> {
   const dateRanges = getDateRanges();
-  
-  // Step 1: Try Birdeye Cache first (for all transactions)
   if (BIRDEYE_SUPPORTED_CHAINS.includes(chain)) {
     const tokenAddress = getTokenAddress(tokenId, chain);
     if (tokenAddress) {
@@ -67,36 +63,25 @@ export async function fetchHistoricalPrice(tokenId: string, symbol: string, time
       }
     }
   }
-  
   const nowUnix = Math.floor(Date.now() / 1000);
   const yearAgo = nowUnix - (365 * 24 * 60 * 60);
-  
-  // Step 2: For recent transactions (< 1 year), try CoinGecko cache and API
   if (timestamp >= yearAgo) {
     const cgId = findCoinGeckoId(tokenId, symbol, chain);
     if (cgId) {
-      // Try CoinGecko cache
       const cachedCGPrice = fetchPriceFromCGCache(cgId, timestamp);
       if (cachedCGPrice !== null) {
         console.log(`  CoinGecko Cache Hit for ${symbol}: $${cachedCGPrice}`);
         return cachedCGPrice;
       }
-      
-      // Try CoinGecko API with medium range (24h)
       console.log(`  Trying CoinGecko API for ${symbol} (${tokenId})...`);
       let cgPrice = await fetchCoinGeckoPrice(tokenId, symbol, timestamp, chain, dateRanges.MEDIUM_RANGE);
       if (cgPrice === null) {
         console.log(`  Trying looser 10-day window for ${symbol}...`);
         cgPrice = await fetchCoinGeckoPrice(tokenId, symbol, timestamp, chain, dateRanges.LONG_RANGE);
       }
-      if (cgPrice !== null) {
-        console.log(`  CoinGecko Success: $${cgPrice}`);
-        return cgPrice;
-      }
+      if (cgPrice !== null) {console.log(`  CoinGecko Success: $${cgPrice}`); return cgPrice;}
     }
   }
-  
-  // Step 3: Final fallback - Birdeye API (for supported chains)
   if (BIRDEYE_SUPPORTED_CHAINS.includes(chain)) {
     const tokenAddress = getTokenAddress(tokenId, chain);
     if (tokenAddress) {
@@ -109,10 +94,7 @@ export async function fetchHistoricalPrice(tokenId: string, symbol: string, time
             await delay(30000);
             return fetchHistoricalPrice(tokenId, symbol, timestamp, chain, retries - 1);
           } 
-          else {
-            console.log(`  Birdeye: Rate limited. No retries left.`);
-            return null;
-          }
+          else {console.log(`  Birdeye: Rate limited. No retries left.`); return null;}
         }
         if (bePrice === null) {
           console.log(`  Trying looser 10-day window on Birdeye for ${symbol}...`);
@@ -123,23 +105,14 @@ export async function fetchHistoricalPrice(tokenId: string, symbol: string, time
               await delay(30000);
               return fetchHistoricalPrice(tokenId, symbol, timestamp, chain, retries - 1);
             } 
-            else {
-              console.log(`  Birdeye: Rate limited. No retries left.`);
-              return null;
-            }
+            else {console.log(`  Birdeye: Rate limited. No retries left.`); return null;}
           }
         }
-        if (bePrice !== null && bePrice !== -429) {
-          console.log(`  Birdeye Success: $${bePrice}`);
-          return bePrice;
-        }
+        if (bePrice !== null && bePrice !== -429) {console.log(`  Birdeye Success: $${bePrice}`); return bePrice;}
       } 
-      catch (e) {
-        console.error(`  Birdeye Error:`, e);
-      }
+      catch (e) {console.error(`  Birdeye Error:`, e);}
     }
   }
-  
   return null;
 }
 

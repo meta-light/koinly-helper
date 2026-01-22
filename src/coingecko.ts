@@ -5,12 +5,9 @@ import { parseCSVLine, extractTokenInfo, delay } from './utils';
 
 export const CG_MIN_GAP = 4000; // 15 requests per minute (60s / 15 = 4s)
 export const CG_CANDLES_PATH = path.join(process.cwd(), '.cache/coingecko_candles.json');
-
 let lastCGCallTime = 0;
 let cgCandleCache: Record<string, any[]> = {};
-if (fs.existsSync(CG_CANDLES_PATH)) {
-  cgCandleCache = JSON.parse(fs.readFileSync(CG_CANDLES_PATH, 'utf-8'));
-}
+if (fs.existsSync(CG_CANDLES_PATH)) {cgCandleCache = JSON.parse(fs.readFileSync(CG_CANDLES_PATH, 'utf-8'));}
 
 export function fetchPriceFromCGCache(cgId: string, timestamp: number): number | null {
   const prices = cgCandleCache[cgId];
@@ -23,6 +20,7 @@ export function fetchPriceFromCGCache(cgId: string, timestamp: number): number |
   }
   return closestPrice;
 }
+
 export function findCoinGeckoId(tokenId: string, symbol: string, chain: string): string | null {
     const mappedId = COINGECKO_ID_MAP[tokenId] || COINGECKO_ID_MAP[symbol];
     if (mappedId && mappedId !== '') return mappedId;
@@ -82,19 +80,17 @@ export async function cacheGCCandles() {
         if (response.status === 429) {
           console.log(`  Rate limited by CoinGecko. Sleeping 60s...`);
           await delay(60000);
-          i--; // Retry the same token
+          i--;
           continue;
         }
-        if (!response.ok) {
-          console.error(`  Error fetching ${cgId}: ${response.status}`);
-          continue;
-        }
+        if (!response.ok) {console.error(`  Error fetching ${cgId}: ${response.status}`); continue;}
         const data: any = await response.json();
         if (data.prices && data.prices.length > 0) {
           cache[cgId] = data.prices;
           fs.writeFileSync(CG_CANDLES_PATH, JSON.stringify(cache, null, 2));
           console.log(`  Success: Found ${data.prices.length} price points.`);
-        } else {console.log(`  Failed or no data for ${cgId}`);}
+        } 
+        else {console.log(`  Failed or no data for ${cgId}`);}
       } 
       catch (e) {console.error(`  Fetch error for ${cgId}:`, e);}
       if (i < idsArray.length - 1) {await delay(CG_MIN_GAP);}

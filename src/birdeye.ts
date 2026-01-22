@@ -58,7 +58,6 @@ export async function fetchBirdeyePrice(tokenAddress: string, timestamp: number,
   const timeSinceLastCall = currentMs - lastCallTime;
   if (timeSinceLastCall < MIN_GAP) {await delay(MIN_GAP - timeSinceLastCall);}
   lastCallTime = Date.now();
-
   const headers = {'X-API-KEY': BIRDEYE_API_KEY, 'accept': 'application/json', 'x-chain': chain};
   const url = new URL('https://public-api.birdeye.so/defi/history_price');
   url.searchParams.append('address', tokenAddress);
@@ -98,14 +97,8 @@ async function fetchHistoricalPrice(tokenId: string, symbol: string, timestamp: 
   if (!BIRDEYE_SUPPORTED_CHAINS.includes(chain)) {console.log(`  Chain ${chain} not supported by Birdeye. Skipping.`); return null;}
   const tokenAddress = getTokenAddress(tokenId, chain);
   if (!tokenAddress) {return null;}
-
-  // Try cache first
   const cachedPrice = fetchPriceFromCache(tokenAddress, timestamp);
-  if (cachedPrice !== null) {
-    console.log(`  Birdeye Cache Hit for ${symbol}: $${cachedPrice}`);
-    return cachedPrice;
-  }
-
+  if (cachedPrice !== null) {console.log(`  Birdeye Cache Hit for ${symbol}: $${cachedPrice}`); return cachedPrice;}
   console.log(`  CoinGecko failed/skipped & Cache Miss. Trying Birdeye API for ${tokenAddress} on ${chain}...`);
   const currentMs = Date.now();
   const timeSinceLastCall = currentMs - lastCallTime;
